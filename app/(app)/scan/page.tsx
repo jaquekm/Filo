@@ -1,8 +1,8 @@
-export const dynamic = "force-dynamic";
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useState, useRef, useCallback } from "react";
-import { ScanLine, Camera, Upload, Check, Loader2, X, AlertCircle } from "lucide-react";
+import { ScanLine, Camera, Upload, Check, X, AlertCircle } from "lucide-react";
 
 type Step = "ready" | "camera" | "processing" | "review" | "done";
 
@@ -44,24 +44,9 @@ export default function ScanPage() {
     setStream(null);
   }, [stream]);
 
-  const capture = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext("2d");
-    if (!ctx) return;
-
-    canvasRef.current.width = videoRef.current.videoWidth;
-    canvasRef.current.height = videoRef.current.videoHeight;
-    ctx.drawImage(videoRef.current, 0, 0);
-
-    stopCamera();
-    processOCR();
-  };
-
-  const processOCR = () => {
+  const processImage = () => {
     setStep("processing");
     setProgress(0);
-
-    // Simulate OCR processing
     const interval = setInterval(() => {
       setProgress((p) => {
         const next = p + Math.random() * 18;
@@ -84,17 +69,23 @@ export default function ScanPage() {
     }, 200);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // In production: send to Tesseract.js or API
-    processOCR();
+  const capture = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+    canvasRef.current.width = videoRef.current.videoWidth;
+    canvasRef.current.height = videoRef.current.videoHeight;
+    ctx.drawImage(videoRef.current, 0, 0);
+    stopCamera();
+    processImage();
   };
 
-  const confirmAndSave = () => {
-    // In production: save to Supabase via useResponses().submit()
-    setStep("done");
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    processImage();
   };
+
+  const confirmAndSave = () => setStep("done");
 
   const reset = () => {
     stopCamera();
@@ -103,41 +94,36 @@ export default function ScanPage() {
     setDetectedAnswers([]);
   };
 
-  // ─── DONE ───
   if (step === "done") {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
         <div className="w-20 h-20 rounded-full bg-brand-primary-glow flex items-center justify-center mb-6">
           <Check size={40} className="text-brand-primary" />
         </div>
-        <h2 className="text-2xl font-extrabold text-brand-text mb-2">Scan Salvo!</h2>
+        <h2 className="text-2xl font-extrabold text-brand-text mb-2">Formulário Salvo!</h2>
         <p className="text-sm text-brand-text-dim mb-6">
-          {detectedAnswers.length} respostas detectadas e salvas com sucesso.
+          {detectedAnswers.length} respostas registradas com sucesso.
         </p>
-        <button
-          onClick={reset}
-          className="bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
-        >
+        <button onClick={reset} className="bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors">
           Escanear Outro
         </button>
       </div>
     );
   }
 
-  // ─── REVIEW ───
   if (step === "review") {
     return (
       <div className="animate-fade-in max-w-2xl">
         <h1 className="text-2xl font-extrabold text-brand-text mb-1">Confirmar Respostas</h1>
         <p className="text-sm text-brand-text-dim mb-6">
-          Verifique as respostas detectadas pelo OCR
+          Verifique as respostas lidas do formulário e corrija se necessário
         </p>
 
         <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4 mb-4 flex items-center gap-3">
           <Check size={18} className="text-brand-primary shrink-0" />
           <span className="text-sm text-brand-primary font-semibold">
-            OCR detectou {detectedAnswers.length} respostas com{" "}
-            {Math.round(detectedAnswers.reduce((s, a) => s + a.confidence, 0) / detectedAnswers.length)}% de confiança média
+            {detectedAnswers.length} respostas identificadas com{" "}
+            {Math.round(detectedAnswers.reduce((s, a) => s + a.confidence, 0) / detectedAnswers.length)}% de precisão média
           </span>
         </div>
 
@@ -148,14 +134,12 @@ export default function ScanPage() {
                 {a.questionIdx}. {a.question}
               </div>
               <div className="flex items-center gap-2">
-                <span
-                  className={`text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full ${
-                    a.confidence >= 90
-                      ? "bg-brand-primary/10 text-brand-primary"
-                      : "bg-brand-warning/10 text-brand-warning"
-                  }`}
-                >
-                  {a.confidence}%
+                <span className={`text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+                  a.confidence >= 90
+                    ? "bg-brand-primary/10 text-brand-primary"
+                    : "bg-yellow-500/10 text-yellow-400"
+                }`}>
+                  {a.confidence >= 90 ? "✓ Lido" : "⚠ Revisar"}
                 </span>
                 <input
                   defaultValue={a.answer}
@@ -167,16 +151,12 @@ export default function ScanPage() {
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={confirmAndSave}
-            className="flex-1 flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-3 rounded-lg text-sm transition-colors"
-          >
+          <button onClick={confirmAndSave}
+            className="flex-1 flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-3 rounded-lg text-sm transition-colors">
             <Check size={16} /> Confirmar e Salvar
           </button>
-          <button
-            onClick={reset}
-            className="px-6 py-3 rounded-lg border border-brand-border text-sm text-brand-text-muted hover:bg-brand-surface-hover transition-colors"
-          >
+          <button onClick={reset}
+            className="px-6 py-3 rounded-lg border border-brand-border text-sm text-brand-text-muted hover:bg-brand-surface-hover transition-colors">
             Descartar
           </button>
         </div>
@@ -186,13 +166,12 @@ export default function ScanPage() {
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-2xl font-extrabold text-brand-text mb-1">Scanner OCR</h1>
+      <h1 className="text-2xl font-extrabold text-brand-text mb-1">Scanner de Formulários</h1>
       <p className="text-sm text-brand-text-dim mb-7">
-        Escaneie formulários impressos preenchidos
+        Fotografe formulários preenchidos em papel para registrar as respostas automaticamente
       </p>
 
       <div className="bg-brand-card border border-brand-border rounded-2xl flex flex-col items-center justify-center min-h-[400px] p-12">
-        {/* READY */}
         {step === "ready" && (
           <>
             <div className="w-28 h-28 rounded-3xl bg-brand-primary-glow border-2 border-dashed border-brand-primary flex items-center justify-center mb-6">
@@ -200,25 +179,22 @@ export default function ScanPage() {
             </div>
             <h3 className="text-lg font-bold text-brand-text mb-2">Pronto para Escanear</h3>
             <p className="text-sm text-brand-text-dim text-center max-w-sm mb-6 leading-relaxed">
-              Posicione o formulário preenchido de frente para a câmera.
-              O OCR detectará automaticamente as respostas marcadas.
+              Posicione o formulário preenchido de frente para a câmera ou envie uma foto.
+              As respostas serão lidas automaticamente.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={startCamera}
-                className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold px-6 py-3 rounded-lg text-sm transition-colors"
-              >
+              <button onClick={startCamera}
+                className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold px-6 py-3 rounded-lg text-sm transition-colors">
                 <Camera size={16} /> Abrir Câmera
               </button>
               <label className="flex items-center gap-2 px-6 py-3 rounded-lg border border-brand-border text-sm text-brand-text-muted hover:bg-brand-surface-hover transition-colors cursor-pointer">
-                <Upload size={16} /> Upload
+                <Upload size={16} /> Enviar Foto
                 <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
           </>
         )}
 
-        {/* CAMERA */}
         {step === "camera" && (
           <div className="w-full max-w-lg">
             <div className="relative rounded-xl overflow-hidden bg-black mb-4">
@@ -231,51 +207,46 @@ export default function ScanPage() {
               </div>
             </div>
             <div className="flex gap-3 justify-center">
-              <button
-                onClick={capture}
-                className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold px-8 py-3 rounded-full text-sm transition-colors"
-              >
-                <Camera size={18} /> Capturar
+              <button onClick={capture}
+                className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold px-8 py-3 rounded-full text-sm transition-colors">
+                <Camera size={18} /> Fotografar
               </button>
-              <button
-                onClick={() => { stopCamera(); setStep("ready"); }}
-                className="px-6 py-3 rounded-full border border-brand-border text-sm text-brand-text-muted hover:bg-brand-surface-hover transition-colors"
-              >
+              <button onClick={() => { stopCamera(); setStep("ready"); }}
+                className="px-6 py-3 rounded-full border border-brand-border text-sm text-brand-text-muted hover:bg-brand-surface-hover transition-colors">
                 Cancelar
               </button>
             </div>
           </div>
         )}
 
-        {/* PROCESSING */}
         {step === "processing" && (
           <>
-            <h3 className="text-lg font-bold text-brand-text mb-4">Processando OCR...</h3>
+            <div className="w-16 h-16 rounded-2xl bg-brand-primary-glow flex items-center justify-center mb-5">
+              <ScanLine size={32} className="text-brand-primary animate-pulse" />
+            </div>
+            <h3 className="text-lg font-bold text-brand-text mb-4">Lendo formulário...</h3>
             <div className="w-full max-w-xs h-2 rounded-full bg-brand-bg mb-3">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-blue transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-sm text-brand-text-dim">
-              {Math.round(progress)}% — Detectando respostas
-            </p>
+            <p className="text-sm text-brand-text-dim">{Math.round(progress)}% concluído</p>
           </>
         )}
       </div>
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Info */}
       <div className="mt-6 bg-brand-card border border-brand-border rounded-xl p-5">
         <h4 className="text-sm font-bold text-brand-text mb-3 flex items-center gap-2">
-          <AlertCircle size={16} className="text-brand-blue" /> Como funciona o Scanner
+          <AlertCircle size={16} className="text-brand-blue" /> Como usar o Scanner
         </h4>
         <div className="space-y-2 text-sm text-brand-text-dim">
-          <p>1. Abra a câmera ou faça upload de uma foto do formulário preenchido</p>
-          <p>2. O OCR (Tesseract.js) detecta o texto e marcações</p>
-          <p>3. Revise e corrija as respostas detectadas</p>
-          <p>4. Confirme para salvar as respostas no sistema</p>
+          <p>1. Abra a câmera ou envie uma foto do formulário preenchido</p>
+          <p>2. O sistema lê automaticamente as respostas marcadas</p>
+          <p>3. Revise e corrija qualquer resposta se necessário</p>
+          <p>4. Confirme para registrar as respostas no sistema</p>
         </div>
       </div>
     </div>

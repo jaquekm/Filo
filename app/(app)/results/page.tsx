@@ -1,5 +1,5 @@
-export const dynamic = "force-dynamic";
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -103,10 +103,12 @@ export default function ResultsPage() {
   }, [formId]);
 
   const exportCSV = () => {
-    let csv = "Pergunta,Opção,Quantidade,Porcentagem\n";
+    let csv = "Pergunta,Opção,Quantidade,Porcentagem
+";
     results.forEach((r) => {
       r.data.forEach((d) => {
-        csv += `"${r.text}","${d.name}",${d.value},${d.pct}%\n`;
+        csv += `"${r.text}","${d.name}",${d.value},${d.pct}%
+`;
       });
     });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
