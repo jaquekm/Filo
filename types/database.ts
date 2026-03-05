@@ -124,18 +124,28 @@ export interface FormWithStats extends Form {
   city_name?: string;
 }
 
+type CompanyInsert = Omit<Company, "id" | "created_at" | "updated_at"> & { id?: string };
+type ProfileInsert = Omit<Profile, "created_at" | "updated_at">;
+type CityInsert = Omit<City, "id" | "created_at" | "updated_at"> & { id?: string };
+type FolderInsert = Omit<Folder, "id" | "created_at" | "updated_at"> & { id?: string };
+type FormInsert = Omit<Form, "id" | "created_at" | "updated_at"> & { id?: string };
+type QuestionInsert = Omit<Question, "id" | "created_at"> & { id?: string };
+type ResponseInsert = Omit<SurveyResponse, "id" | "created_at"> & { id?: string };
+type AnswerInsert = Omit<Answer, "id" | "created_at"> & { id?: string };
+type ScanLogInsert = Omit<ScanLog, "id" | "created_at"> & { id?: string };
+
 export interface Database {
   public: {
     Tables: {
-      companies: { Row: Company };
-      profiles: { Row: Profile };
-      cities: { Row: City };
-      folders: { Row: Folder };
-      forms: { Row: Form };
-      questions: { Row: Question };
-      responses: { Row: SurveyResponse };
-      answers: { Row: Answer };
-      scan_logs: { Row: ScanLog };
+      companies: { Row: Company; Insert: CompanyInsert; Update: Partial<CompanyInsert> };
+      profiles: { Row: Profile; Insert: ProfileInsert; Update: Partial<ProfileInsert> };
+      cities: { Row: City; Insert: CityInsert; Update: Partial<CityInsert> };
+      folders: { Row: Folder; Insert: FolderInsert; Update: Partial<FolderInsert> };
+      forms: { Row: Form; Insert: FormInsert; Update: Partial<FormInsert> };
+      questions: { Row: Question; Insert: QuestionInsert; Update: Partial<QuestionInsert> };
+      responses: { Row: SurveyResponse; Insert: ResponseInsert; Update: Partial<ResponseInsert> };
+      answers: { Row: Answer; Insert: AnswerInsert; Update: Partial<AnswerInsert> };
+      scan_logs: { Row: ScanLog; Insert: ScanLogInsert; Update: Partial<ScanLogInsert> };
     };
   };
 }
