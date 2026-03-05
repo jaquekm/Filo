@@ -21,7 +21,7 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const supabase = createClient();
+  const supabase = createClient() as any;
   const [stats, setStats] = useState<Stats>({ cities: 0, forms: 0, responses: 0, scans: 0 });
   const [cityData, setCityData] = useState<{ name: string; respostas: number }[]>([]);
   const [methodData] = useState([

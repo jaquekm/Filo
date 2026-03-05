@@ -118,4 +118,11 @@ pesquisahub/
 - ✅ Row Level Security (RLS)
 - ✅ Middleware de autenticação
 
+## Próximos Passos
 
+- [ ] Integrar Tesseract.js para OCR real
+- [ ] Geração de PDF imprimível
+- [ ] Exportação Excel/PDF dos resultados
+- [ ] Geolocalização nas respostas
+- [ ] Notificações em tempo real (Supabase Realtime)
+- [ ] PWA para uso offline em campo

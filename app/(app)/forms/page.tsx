@@ -146,7 +146,7 @@ export default function FormsPage() {
   const [desc, setDesc] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const supabase = createClient();
+  const supabase = createClient() as any;
 
   const fetchAllForms = useCallback(async () => {
     setAllLoading(true);

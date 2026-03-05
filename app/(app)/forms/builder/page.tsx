@@ -29,7 +29,7 @@ export default function FormBuilderPage() {
   const params = useSearchParams();
   const router = useRouter();
   const formId = params.get("form");
-  const supabase = createClient();
+  const supabase = createClient() as any;
 
   const { questions: existing, saveAll } = useQuestions(formId);
   const [formTitle, setFormTitle] = useState("");

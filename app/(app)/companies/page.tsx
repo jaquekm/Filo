@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { createClient } from "@/lib/supabase-browser";
 import type { Company } from "@/types/database";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = () => createClient() as any;
 import {
   Search, Plus, Pencil, X, Loader2, Building2,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -12,7 +15,7 @@ import {
 
 export default function CompaniesPage() {
   const { role } = useAuth();
-  const supabase = createClient();
+  const supabase = db();
 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);

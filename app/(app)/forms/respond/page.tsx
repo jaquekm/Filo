@@ -10,7 +10,7 @@ export default function FormRespondPage() {
   const params = useSearchParams();
   const router = useRouter();
   const formId = params.get("form");
-  const supabase = createClient();
+  const supabase = createClient() as any;
 
   const { questions, loading } = useQuestions(formId);
   const { submit } = useResponses(formId);

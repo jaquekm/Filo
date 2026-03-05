@@ -24,7 +24,7 @@ interface UserWithEmail extends Profile {
 
 export default function UsersPage() {
   const { profile, role } = useAuth();
-  const supabase = createClient();
+  const supabase = createClient() as any;
 
   const [users, setUsers] = useState<UserWithEmail[]>([]);
   const [loading, setLoading] = useState(true);

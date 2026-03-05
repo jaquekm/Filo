@@ -22,7 +22,7 @@ interface QuestionResult {
 export default function ResultsPage() {
   const params = useSearchParams();
   const formId = params.get("form");
-  const supabase = createClient();
+  const supabase = createClient() as any;
 
   const [formTitle, setFormTitle] = useState("");
   const [results, setResults] = useState<QuestionResult[]>([]);
