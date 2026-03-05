@@ -103,12 +103,10 @@ export default function ResultsPage() {
   }, [formId]);
 
   const exportCSV = () => {
-    let csv = "Pergunta,Opção,Quantidade,Porcentagem
-";
+    let csv = `Pergunta,Opção,Quantidade,Porcentagem\n`;
     results.forEach((r) => {
       r.data.forEach((d) => {
-        csv += `"${r.text}","${d.name}",${d.value},${d.pct}%
-`;
+        csv += `"${r.text}","${d.name}",${d.value},${d.pct}%\n`;
       });
     });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
