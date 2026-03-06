@@ -1,14 +1,20 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient as _createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 
-// Singleton — evita múltiplos clientes competindo pelo lock de auth
-let client: ReturnType<typeof createBrowserClient<Database>> | null = null;
+let client: ReturnType<typeof _createClient<Database>> | null = null;
 
 export function createClient() {
   if (client) return client;
-  client = createBrowserClient<Database>(
+  client = _createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: true,
+        storageKey: "filo-auth",
+        storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      },
+    }
   );
   return client;
 }
