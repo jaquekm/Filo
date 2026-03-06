@@ -107,15 +107,15 @@ export default function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
         {statCards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-brand-card border border-brand-border rounded-xl p-5 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
-              <Icon size={22} className={color} />
+          <div key={label} className="bg-brand-card border border-brand-border rounded-xl p-3 lg:p-5 flex items-center gap-3">
+            <div className={`w-9 h-9 lg:w-12 lg:h-12 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+              <Icon size={18} className={color} />
             </div>
             <div>
-              <div className="text-2xl font-extrabold text-brand-text leading-none">
+              <div className="text-xl lg:text-2xl font-extrabold text-brand-text leading-none">
                 {value.toLocaleString("pt-BR")}
               </div>
-              <div className="text-xs text-brand-text-dim mt-1 uppercase tracking-wider">
+              <div className="text-[10px] lg:text-xs text-brand-text-dim mt-1 uppercase tracking-wide">
                 {label}
               </div>
             </div>
