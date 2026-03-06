@@ -6,6 +6,7 @@ import type { City, Folder, Form, Question, SurveyResponse, Answer } from "@/typ
 
 const supabase = createClient();
 
+// ─── Cities ───
 export function useCities() {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,15 +26,9 @@ export function useCities() {
   const create = async (name: string, state: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    // Buscar company_id do perfil
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("company_id")
-      .eq("id", user.id)
-      .single();
     const { error } = await supabase
       .from("cities")
-      .insert({ name, state, created_by: user.id, company_id: profile?.company_id });
+      .insert({ name, state, created_by: user.id });
     if (!error) await fetch();
     return error;
   };

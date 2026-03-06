@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { createClient } from "@/lib/supabase-browser";
 import { Loader2, Building2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 function FiloLogo({ size = 36 }: { size?: number }) {
@@ -18,13 +18,12 @@ function FiloLogo({ size = 36 }: { size?: number }) {
     </svg>
   );
 }
-import { createClient } from "@/lib/supabase-browser";
 
 type Tab = "login" | "register-company";
 
-function LoginPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const { signIn } = useAuth();
+  const supabase = createClient();
   const [tab, setTab] = useState<Tab>("login");
 
   // Login
@@ -46,16 +45,24 @@ function LoginPage() {
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerSuccess, setRegisterSuccess] = useState(false);
 
+  // ── LOGIN direto via Supabase (sem depender do AuthProvider) ──
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
     setLoginError("");
-    const { error } = await signIn(email, password);
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
-      setLoginError(error);
+      setLoginError(
+        error.message === "Invalid login credentials"
+          ? "E-mail ou senha incorretos"
+          : error.message
+      );
       setLoginLoading(false);
     } else {
-      router.push("/dashboard");
+      // Redirecionar direto — sessão já está salva no cookie
+      window.location.href = "/dashboard";
     }
   };
 
@@ -73,10 +80,7 @@ function LoginPage() {
     setRegisterLoading(true);
     setRegisterError("");
 
-    const supabase = createClient();
-
     try {
-      // 1. Criar empresa via função SECURITY DEFINER (bypass RLS)
       const { data: fnData, error: fnError } = await supabase.rpc("register_company", {
         p_company_name: companyName,
         p_company_cnpj: companyCnpj || null,
@@ -89,16 +93,11 @@ function LoginPage() {
 
       const companyId = (fnData as any)?.company_id;
 
-      // 2. Criar usuário admin vinculado à empresa
       const { error: authError } = await supabase.auth.signUp({
         email: adminEmail,
         password: adminPassword,
         options: {
-          data: {
-            full_name: adminName,
-            role: "admin",
-            company_id: companyId,
-          },
+          data: { full_name: adminName, role: "admin", company_id: companyId },
         },
       });
 
@@ -114,121 +113,80 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen bg-brand-bg flex items-center justify-center px-4">
-      {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-[20%] left-[30%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-[20%] right-[30%] w-[400px] h-[400px] bg-brand-blue/4 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative w-full max-w-sm animate-fade-in">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-3">
             <FiloLogo size={44} />
-            <span className="text-4xl font-extrabold text-brand-text tracking-tight">
-              Filo
-            </span>
+            <span className="text-4xl font-extrabold text-brand-text tracking-tight">Filo</span>
           </div>
-          <p className="text-sm text-brand-text-dim">
-            Sistema de Pesquisas de Campo
-          </p>
+          <p className="text-sm text-brand-text-dim">Sistema de Pesquisas de Campo</p>
         </div>
 
-        {/* Card */}
         <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
-          {/* Tabs */}
           {tab === "login" && (
             <div className="flex border-b border-brand-border">
-              <button
-                onClick={() => setTab("login")}
-                className="flex-1 py-3 text-sm font-semibold text-brand-primary border-b-2 border-brand-primary"
-              >
+              <button onClick={() => setTab("login")}
+                className="flex-1 py-3 text-sm font-semibold text-brand-primary border-b-2 border-brand-primary">
                 Entrar
               </button>
-              <button
-                onClick={() => setTab("register-company")}
-                className="flex-1 py-3 text-sm font-medium text-brand-text-dim hover:text-brand-text transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Building2 size={14} />
-                Cadastrar Empresa
+              <button onClick={() => setTab("register-company")}
+                className="flex-1 py-3 text-sm font-medium text-brand-text-dim hover:text-brand-text transition-colors flex items-center justify-center gap-1.5">
+                <Building2 size={14} /> Cadastrar Empresa
               </button>
             </div>
           )}
 
           {tab === "login" ? (
-            /* ── LOGIN ── */
             <form onSubmit={handleLogin} className="p-8 space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1.5">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                />
+                <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1.5">E-mail</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com" required
+                  className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1.5">
-                  Senha
-                </label>
+                <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1.5">Senha</label>
                 <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 pr-10 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text-dim hover:text-brand-text-muted transition-colors"
-                  >
+                  <input type={showPassword ? "text" : "password"} value={password}
+                    onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required
+                    className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 pr-10 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text-dim hover:text-brand-text-muted transition-colors">
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
               {loginError && (
-                <div className="bg-brand-accent-soft border border-brand-accent/20 text-brand-accent text-xs rounded-lg px-3 py-2">
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg px-3 py-2">
                   {loginError}
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="w-full bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
+              <button type="submit" disabled={loginLoading}
+                className="w-full bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {loginLoading && <Loader2 size={16} className="animate-spin" />}
                 {loginLoading ? "Entrando..." : "Entrar"}
               </button>
 
               <div className="pt-1 border-t border-brand-border text-center">
-                <button
-                  type="button"
-                  onClick={() => setTab("register-company")}
-                  className="text-xs text-brand-text-dim hover:text-brand-primary transition-colors mt-3 inline-flex items-center gap-1"
-                >
-                  <Building2 size={12} />
-                  Não tem conta? Cadastre sua empresa
+                <button type="button" onClick={() => setTab("register-company")}
+                  className="text-xs text-brand-text-dim hover:text-brand-primary transition-colors mt-3 inline-flex items-center gap-1">
+                  <Building2 size={12} /> Não tem conta? Cadastre sua empresa
                 </button>
               </div>
             </form>
           ) : (
-            /* ── CADASTRO EMPRESA ── */
             <div>
               <div className="flex items-center gap-3 p-5 border-b border-brand-border">
-                <button
-                  onClick={() => { setTab("login"); setRegisterSuccess(false); setRegisterError(""); }}
-                  className="text-brand-text-dim hover:text-brand-text transition-colors"
-                >
+                <button onClick={() => { setTab("login"); setRegisterSuccess(false); setRegisterError(""); }}
+                  className="text-brand-text-dim hover:text-brand-text transition-colors">
                   <ArrowLeft size={18} />
                 </button>
                 <div>
@@ -245,110 +203,63 @@ function LoginPage() {
                   <h3 className="text-brand-text font-bold text-lg mb-2">Empresa cadastrada!</h3>
                   <p className="text-brand-text-dim text-sm mb-1">Verifique o e-mail do administrador para confirmar a conta.</p>
                   <p className="text-brand-text-dim text-xs mb-6">Após confirmar, faça login normalmente.</p>
-                  <button
-                    onClick={() => { setTab("login"); setRegisterSuccess(false); }}
-                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-2.5 rounded-lg text-sm transition-colors"
-                  >
+                  <button onClick={() => { setTab("login"); setRegisterSuccess(false); }}
+                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-2.5 rounded-lg text-sm transition-colors">
                     Ir para o Login
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleRegisterCompany} className="p-6 space-y-4">
-                  {/* Dados da empresa */}
                   <div>
                     <p className="text-xs font-bold text-brand-primary uppercase tracking-widest mb-3">Dados da Empresa</p>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">
-                          Nome da Empresa *
-                        </label>
-                        <input
-                          type="text"
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                          placeholder="Ex: Minha Empresa Ltda"
-                          required
-                          className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                        />
+                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">Nome da Empresa *</label>
+                        <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                          placeholder="Ex: Minha Empresa Ltda" required
+                          className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">
-                            CNPJ
-                          </label>
-                          <input
-                            type="text"
-                            value={companyCnpj}
-                            onChange={(e) => setCompanyCnpj(formatCnpj(e.target.value))}
+                          <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">CNPJ</label>
+                          <input type="text" value={companyCnpj} onChange={(e) => setCompanyCnpj(formatCnpj(e.target.value))}
                             placeholder="00.000.000/0001-00"
-                            className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                          />
+                            className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">
-                            E-mail
-                          </label>
-                          <input
-                            type="email"
-                            value={companyEmail}
-                            onChange={(e) => setCompanyEmail(e.target.value)}
+                          <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">E-mail</label>
+                          <input type="email" value={companyEmail} onChange={(e) => setCompanyEmail(e.target.value)}
                             placeholder="empresa@email.com"
-                            className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                          />
+                            className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Dados do admin */}
                   <div>
                     <p className="text-xs font-bold text-brand-primary uppercase tracking-widest mb-3">Administrador</p>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">
-                          Nome *
-                        </label>
-                        <input
-                          type="text"
-                          value={adminName}
-                          onChange={(e) => setAdminName(e.target.value)}
-                          placeholder="Seu nome completo"
-                          required
-                          className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                        />
+                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">Nome *</label>
+                        <input type="text" value={adminName} onChange={(e) => setAdminName(e.target.value)}
+                          placeholder="Seu nome completo" required
+                          className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">
-                          E-mail *
-                        </label>
-                        <input
-                          type="email"
-                          value={adminEmail}
-                          onChange={(e) => setAdminEmail(e.target.value)}
-                          placeholder="admin@email.com"
-                          required
-                          className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                        />
+                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">E-mail *</label>
+                        <input type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)}
+                          placeholder="admin@email.com" required
+                          className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">
-                          Senha *
-                        </label>
+                        <label className="block text-xs font-semibold text-brand-text-muted uppercase tracking-wider mb-1">Senha *</label>
                         <div className="relative">
-                          <input
-                            type={showAdminPassword ? "text" : "password"}
-                            value={adminPassword}
+                          <input type={showAdminPassword ? "text" : "password"} value={adminPassword}
                             onChange={(e) => setAdminPassword(e.target.value)}
-                            placeholder="Mínimo 6 caracteres"
-                            required
-                            minLength={6}
-                            className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 pr-10 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowAdminPassword(!showAdminPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text-dim hover:text-brand-text-muted transition-colors"
-                          >
+                            placeholder="Mínimo 6 caracteres" required minLength={6}
+                            className="w-full bg-brand-bg border border-brand-border rounded-lg px-3.5 py-2.5 pr-10 text-sm text-brand-text placeholder:text-brand-text-dim outline-none focus:border-brand-primary transition-colors" />
+                          <button type="button" onClick={() => setShowAdminPassword(!showAdminPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-text-dim hover:text-brand-text-muted transition-colors">
                             {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
@@ -357,16 +268,13 @@ function LoginPage() {
                   </div>
 
                   {registerError && (
-                    <div className="bg-brand-accent-soft border border-brand-accent/20 text-brand-accent text-xs rounded-lg px-3 py-2">
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg px-3 py-2">
                       {registerError}
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={registerLoading}
-                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
+                  <button type="submit" disabled={registerLoading}
+                    className="w-full bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                     {registerLoading && <Loader2 size={16} className="animate-spin" />}
                     {registerLoading ? "Cadastrando..." : "Cadastrar Empresa"}
                   </button>
@@ -377,13 +285,5 @@ function LoginPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function LoginPageWrapper() {
-  return (
-    <AuthProvider>
-      <LoginPage />
-    </AuthProvider>
   );
 }
