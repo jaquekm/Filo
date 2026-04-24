@@ -2,32 +2,17 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase-browser";
-import type { City, Folder, Form, Question, SurveyResponse, Answer } from "@/types/database";
-
-const supabase = createClient();
+import type { City, Folder, Form, Question, SurveyResponse } from "@/types/database";
 
 // ─── Cities ───
-const create = async (name: string, state: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("company_id")
-    .eq("id", user.id)
-    .single();
-  const { error } = await supabase
-    .from("cities")
-    .insert({ name, state, created_by: user.id, company_id: profile?.company_id });
-  if (!error) await fetch();
-  return error;
-};
+export function useCities() {
+  const [cities, setCities] = useState<City[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    const supabase = createClient();
     setLoading(true);
-    const { data } = await supabase
-      .from("cities")
-      .select("*")
-      .order("name");
+    const { data } = await supabase.from("cities").select("*").order("name");
     setCities(data ?? []);
     setLoading(false);
   }, []);
@@ -35,11 +20,17 @@ const create = async (name: string, state: string) => {
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (name: string, state: string) => {
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", user.id)
+      .single();
     const { error } = await supabase
       .from("cities")
-      .insert({ name, state, created_by: user.id });
+      .insert({ name, state, created_by: user.id, company_id: profile?.company_id });
     if (!error) await fetch();
     return error;
   };
@@ -53,13 +44,10 @@ export function useFolders(cityId: string | null) {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    const supabase = createClient();
     if (!cityId) { setFolders([]); setLoading(false); return; }
     setLoading(true);
-    const { data } = await supabase
-      .from("folders")
-      .select("*")
-      .eq("city_id", cityId)
-      .order("name");
+    const { data } = await supabase.from("folders").select("*").eq("city_id", cityId).order("name");
     setFolders(data ?? []);
     setLoading(false);
   }, [cityId]);
@@ -67,6 +55,7 @@ export function useFolders(cityId: string | null) {
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (name: string, color: string = "#3B82F6") => {
+    const supabase = createClient();
     if (!cityId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -86,6 +75,7 @@ export function useForms(folderId: string | null) {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    const supabase = createClient();
     if (!folderId) { setForms([]); setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase
@@ -100,6 +90,7 @@ export function useForms(folderId: string | null) {
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (title: string, description?: string) => {
+    const supabase = createClient();
     if (!folderId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -121,6 +112,7 @@ export function useQuestions(formId: string | null) {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    const supabase = createClient();
     if (!formId) { setQuestions([]); setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase
@@ -135,8 +127,8 @@ export function useQuestions(formId: string | null) {
   useEffect(() => { fetch(); }, [fetch]);
 
   const saveAll = async (items: Omit<Question, "id" | "created_at">[]) => {
+    const supabase = createClient();
     if (!formId) return;
-    // Delete existing then insert new
     await supabase.from("questions").delete().eq("form_id", formId);
     if (items.length > 0) {
       const { error } = await supabase.from("questions").insert(items);
@@ -154,6 +146,7 @@ export function useResponses(formId: string | null) {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
+    const supabase = createClient();
     if (!formId) { setResponses([]); setLoading(false); return; }
     setLoading(true);
     const { data } = await supabase
@@ -171,6 +164,7 @@ export function useResponses(formId: string | null) {
     answers: { question_id: string; answer_value: string }[],
     source: string = "digital"
   ) => {
+    const supabase = createClient();
     if (!formId) return;
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -198,17 +192,17 @@ export function useResponses(formId: string | null) {
 
 // ─── Stats for results ───
 export async function fetchQuestionStats(formId: string) {
+  const supabase = createClient();
+  const { data: questions } = await supabase
+    .from("questions")
+    .select("id")
+    .eq("form_id", formId);
+
   const { data } = await supabase
     .from("answers")
     .select("question_id, answer_value")
-    .in(
-      "question_id",
-      (
-        await supabase.from("questions").select("id").eq("form_id", formId)
-      ).data?.map((q) => q.id) ?? []
-    );
+    .in("question_id", questions?.map((q) => q.id) ?? []);
 
-  // Group by question_id → answer_value → count
   const map: Record<string, Record<string, number>> = {};
   (data ?? []).forEach(({ question_id, answer_value }) => {
     if (!map[question_id]) map[question_id] = {};
