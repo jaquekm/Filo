@@ -153,7 +153,7 @@ export default function LoginPage() {
                     <Building2 size={28} className="text-brand-primary" />
                   </div>
                   <h3 className="text-brand-text font-bold text-lg mb-2">Empresa cadastrada!</h3>
-                  <p className="text-brand-text-dim text-sm mb-1">Verifique o e-mail do administrador para confirmar a conta.</p>
+                  <p className="text-brand-text-dim text-sm mb-1">Verifique o e-mail para confirmar a conta.</p>
                   <p className="text-brand-text-dim text-xs mb-6">Após confirmar, faça login normalmente.</p>
                   <button onClick={() => { setTab("login"); setRegisterSuccess(false); }} className="w-full bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold py-2.5 rounded-lg text-sm transition-colors">
                     Ir para o Login
