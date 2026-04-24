@@ -50,15 +50,9 @@ export default function CitiesPage() {
             <Building2 size={32} className="text-brand-primary" />
           </div>
           <h3 className="text-lg font-bold text-brand-text mb-2">Nenhuma cidade cadastrada</h3>
-          <p className="text-sm text-brand-text-dim max-w-xs mb-5">
-            Crie sua primeira cidade para começar a organizar pesquisas.
+          <p className="text-sm text-brand-text-dim max-w-xs">
+            Clique em "Nova Cidade" para começar a organizar pesquisas.
           </p>
-          <button
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-2 bg-brand-primary hover:bg-brand-primary-dark text-brand-bg font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors"
-          >
-            <Plus size={16} /> Criar Cidade
-          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -85,7 +79,6 @@ export default function CitiesPage() {
         </div>
       )}
 
-      {/* Modal */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
