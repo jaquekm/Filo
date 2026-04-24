@@ -70,8 +70,6 @@ export default function LoginPage() {
         p_company_name: companyName,
         p_admin_name: adminName,
         p_admin_email: adminEmail,
-        p_company_cnpj: companyCnpj || null,
-        p_company_email: companyEmail || null,
       });
       if (fnError) throw new Error("Erro ao criar empresa: " + fnError.message);
       const { error: authError } = await supabase.auth.signUp({
